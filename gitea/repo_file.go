@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // FileOptions options for all file APIs
@@ -83,6 +84,33 @@ type ContentsResponse struct {
 	// `content` is populated when `type` is `file`, otherwise null
 	Content *string `json:"content"`
 	// `target` is populated when `type` is `symlink`, otherwise null
+	Target      *string `json:"target"`
+	URL         *string `json:"url"`
+	HTMLURL     *string `json:"html_url"`
+	GitURL      *string `json:"git_url"`
+	DownloadURL *string `json:"download_url"`
+	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
+	SubmoduleGitURL *string            `json:"submodule_git_url"`
+	Links           *FileLinksResponse `json:"_links"`
+}
+
+// ContentsCommitResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
+type ContentsCommitResponse struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	SHA  string `json:"sha"`
+	// `type` will be `file`, `dir`, `symlink`, or `submodule`
+	Type string `json:"type"`
+	Size int64  `json:"size"`
+	// `encoding` is populated when `type` is `file`, otherwise null
+	Encoding *string `json:"encoding"`
+	// `content` is populated when `type` is `file`, otherwise null
+	Content *string `json:"content"`
+	// `target` is populated when `type` is `symlink`, otherwise null
+	LastCommitSHA     string    `json:"last_commit_sha"`
+	LastCommitMessage string    `json:"last_commit_message"`
+	LastCommitCreate  time.Time `json:"last_commit_create"`
+
 	Target      *string `json:"target"`
 	URL         *string `json:"url"`
 	HTMLURL     *string `json:"html_url"`
@@ -189,12 +217,34 @@ func (c *Client) ListContents(owner, repo, ref, filepath string) ([]*ContentsRes
 	return crl, resp, err
 }
 
+// ListCommitContents gets a list of entries in a dir
+// ref is optional
+func (c *Client) ListCommitContents(owner, repo, ref, filepath string) ([]*ContentsCommitResponse, *Response, error) {
+	data, resp, err := c.getDirOrFileCommitContents(owner, repo, ref, filepath)
+	if err != nil {
+		return nil, resp, err
+	}
+	crl := make([]*ContentsCommitResponse, 0)
+	if json.Unmarshal(data, &crl) != nil {
+		return nil, resp, fmt.Errorf("expect directory, got file")
+	}
+	return crl, resp, err
+}
+
 func (c *Client) getDirOrFileContents(owner, repo, ref, filepath string) ([]byte, *Response, error) {
 	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, nil, err
 	}
 	filepath = pathEscapeSegments(strings.TrimPrefix(filepath, "/"))
 	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), jsonHeader, nil)
+}
+
+func (c *Client) getDirOrFileCommitContents(owner, repo, ref, filepath string) ([]byte, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+	filepath = pathEscapeSegments(strings.TrimPrefix(filepath, "/"))
+	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/commits/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), jsonHeader, nil)
 }
 
 // CreateFile create a file in a repository

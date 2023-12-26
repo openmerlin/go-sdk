@@ -244,7 +244,7 @@ func (c *Client) getDirOrFileCommitContents(owner, repo, ref, filepath string) (
 		return nil, nil, err
 	}
 	filepath = pathEscapeSegments(strings.TrimPrefix(filepath, "/"))
-	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/commits/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), jsonHeader, nil)
+	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/commit_contents/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), jsonHeader, nil)
 }
 
 // CreateFile create a file in a repository

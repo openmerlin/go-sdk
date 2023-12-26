@@ -1,4 +1,4 @@
-module code.gitea.io/sdk/gitea
+module github.com/openmerlin/go-sdk/gitea
 
 go 1.13
 

@@ -96,6 +96,16 @@ type ContentsResponse struct {
 
 // ContentsCommitResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
 type ContentsCommitResponse struct {
+	// `target` is populated when `type` is `symlink`, otherwise null
+	Target      *string `json:"target"`
+	URL         *string `json:"url"`
+	HTMLURL     *string `json:"html_url"`
+	GitURL      *string `json:"git_url"`
+	DownloadURL *string `json:"download_url"`
+	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
+	SubmoduleGitURL *string            `json:"submodule_git_url"`
+	Links           *FileLinksResponse `json:"_links"`
+
 	Name string `json:"name"`
 	Path string `json:"path"`
 	SHA  string `json:"sha"`
@@ -106,19 +116,12 @@ type ContentsCommitResponse struct {
 	Encoding *string `json:"encoding"`
 	// `content` is populated when `type` is `file`, otherwise null
 	Content *string `json:"content"`
-	// `target` is populated when `type` is `symlink`, otherwise null
+
+	IsLFS bool `json:"is_lfs"`
+
 	LastCommitSHA     string    `json:"last_commit_sha"`
 	LastCommitMessage string    `json:"last_commit_message"`
 	LastCommitCreate  time.Time `json:"last_commit_create"`
-
-	Target      *string `json:"target"`
-	URL         *string `json:"url"`
-	HTMLURL     *string `json:"html_url"`
-	GitURL      *string `json:"git_url"`
-	DownloadURL *string `json:"download_url"`
-	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
-	SubmoduleGitURL *string            `json:"submodule_git_url"`
-	Links           *FileLinksResponse `json:"_links"`
 }
 
 // FileCommitResponse contains information generated from a Git commit for a repo's file.
@@ -197,6 +200,20 @@ func (c *Client) GetContents(owner, repo, ref, filepath string) (*ContentsRespon
 		return nil, resp, err
 	}
 	cr := new(ContentsResponse)
+	if json.Unmarshal(data, &cr) != nil {
+		return nil, resp, fmt.Errorf("expect file, got directory")
+	}
+	return cr, resp, err
+}
+
+// GetCommitContents get the metadata and contents of a file in a repository
+// ref is optional
+func (c *Client) GetCommitContents(owner, repo, ref, filepath string) (*ContentsCommitResponse, *Response, error) {
+	data, resp, err := c.getDirOrFileCommitContents(owner, repo, ref, filepath)
+	if err != nil {
+		return nil, resp, err
+	}
+	cr := new(ContentsCommitResponse)
 	if json.Unmarshal(data, &cr) != nil {
 		return nil, resp, fmt.Errorf("expect file, got directory")
 	}

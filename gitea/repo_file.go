@@ -105,6 +105,7 @@ type ContentsCommitResponse struct {
 	// `submodule_git_url` is populated when `type` is `submodule`, otherwise null
 	SubmoduleGitURL *string            `json:"submodule_git_url"`
 	Links           *FileLinksResponse `json:"_links"`
+	IsBinary        *bool              `json:"is_binary,omitempty"`
 
 	Name string `json:"name"`
 	Path string `json:"path"`

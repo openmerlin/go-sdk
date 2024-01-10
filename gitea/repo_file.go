@@ -32,6 +32,32 @@ type FileOptions struct {
 	Signoff bool `json:"signoff"`
 }
 
+// ChangeFileOperation for creating, updating or deleting a file
+type ChangeFileOperation struct {
+	// indicates what to do with the file
+	// required: true
+	// enum: create,update,delete
+	Operation string `json:"operation" binding:"Required"`
+	// path to the existing or new file
+	// required: true
+	Path string `json:"path" binding:"Required;MaxSize(500)"`
+	// new or updated file content, must be base64 encoded
+	ContentBase64 string `json:"content"`
+	// sha is the SHA for the file that already exists, required for update or delete
+	SHA string `json:"sha"`
+	// old path of the file to move
+	FromPath string `json:"from_path"`
+}
+
+// ChangeFilesOptions options for creating, updating or deleting multiple files
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+type ChangeFilesOptions struct {
+	FileOptions
+	// list of file operations
+	// required: true
+	Files []*ChangeFileOperation `json:"files" binding:"Required"`
+}
+
 // CreateFileOptions options for creating files
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type CreateFileOptions struct {
@@ -139,6 +165,13 @@ type FileCommitResponse struct {
 // FileResponse contains information about a repo's file
 type FileResponse struct {
 	Content      *ContentsResponse          `json:"content"`
+	Commit       *FileCommitResponse        `json:"commit"`
+	Verification *PayloadCommitVerification `json:"verification"`
+}
+
+// FilesResponse contains information about multiple files from a repo
+type FilesResponse struct {
+	Files        []*ContentsResponse        `json:"files"`
 	Commit       *FileCommitResponse        `json:"commit"`
 	Verification *PayloadCommitVerification `json:"verification"`
 }
@@ -329,6 +362,26 @@ func (c *Client) DeleteFile(owner, repo, filepath string, opt DeleteFileOptions)
 		return resp, fmt.Errorf("unexpected Status: %d", status)
 	}
 	return resp, nil
+}
+
+func (c *Client) ChangeFile(owner, repo string, opt ChangeFilesOptions) (*FilesResponse, *Response, error) {
+	var err error
+	if opt.BranchName, err = c.setDefaultBranchForOldVersions(owner, repo, opt.BranchName); err != nil {
+		return nil, nil, err
+	}
+
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+
+	body, err := json.Marshal(&opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fr := new(FilesResponse)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/repos/%s/%s/contents", owner, repo), jsonHeader, bytes.NewReader(body), fr)
+	return fr, resp, err
 }
 
 func (c *Client) setDefaultBranchForOldVersions(owner, repo, branch string) (string, error) {

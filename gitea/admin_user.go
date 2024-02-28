@@ -106,6 +106,15 @@ func (c *Client) AdminDeleteUser(user string) (*Response, error) {
 	return resp, err
 }
 
+// AdminDeleteOrg delete one org according name
+func (c *Client) AdminDeleteOrg(user string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, err
+	}
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/admin/orgs/%s", user), nil, nil)
+	return resp, err
+}
+
 // AdminCreateUserPublicKey adds a public key for the user
 func (c *Client) AdminCreateUserPublicKey(user string, opt CreateKeyOption) (*PublicKey, *Response, error) {
 	if err := escapeValidatePathSegments(&user); err != nil {

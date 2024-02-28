@@ -214,7 +214,8 @@ func (c *Client) GetFileReader(owner, repo, ref, filepath string, resolveLFS ...
 		if err := c.checkServerVersionGreaterThanOrEqual(version1_17_0); err != nil {
 			return nil, nil, err
 		}
-		return c.getResponseReader("GET", fmt.Sprintf("/repos/%s/%s/media/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), nil, nil)
+		_, reader, resp, err := c.getStatusCodeAndResponseReader("GET", fmt.Sprintf("/repos/%s/%s/media/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), nil, nil)
+		return reader, resp, err
 	}
 
 	// normal get

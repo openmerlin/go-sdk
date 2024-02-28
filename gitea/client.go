@@ -390,6 +390,15 @@ func (c *Client) getParsedResponse(method, path string, header http.Header, body
 	return resp, json.Unmarshal(data, obj)
 }
 
+func (c *Client) getStatusCodeAndResponseReader(method, path string, header http.Header, body io.Reader) (int, io.ReadCloser, *Response, error) {
+	resp, err := c.doRequest(method, path, header, body)
+	if err != nil {
+		return 0, nil, resp, err
+	}
+
+	return resp.StatusCode, resp.Body, resp, nil
+}
+
 func (c *Client) getStatusCode(method, path string, header http.Header, body io.Reader) (int, *Response, error) {
 	resp, err := c.doRequest(method, path, header, body)
 	if err != nil {
